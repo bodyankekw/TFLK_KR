@@ -10,6 +10,8 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+using Antlr4.Runtime;
+using System.Xml.Linq;
 
 namespace tf9ik
 {
@@ -294,7 +296,7 @@ namespace tf9ik
 
         private void ОПрограммеToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            MessageBox.Show("Текстовый редактор языкового процесса.\n\nРазработал студент группы АВТ-913:" +
+            MessageBox.Show("Текстовый редактор языкового процесса.\n\nРазработал студент группы АСМ-23:" +
                 "\nВолков Богдан");
         }
 
@@ -305,63 +307,7 @@ namespace tf9ik
 
         private void Valid_Click(object sender, EventArgs e)
         {
-            if (tabControl1.SelectedIndex == -1)
-            {
-                return;
-            }
 
-            RichTextBox box = (RichTextBox)tabControl1.TabPages[tabControl1.SelectedIndex].Controls["textEnter"];
-
-
-
-            string enterString = box.Text;
-            Scanner scanner = new Scanner();
-            SyntaxAnalyzer analysis = new SyntaxAnalyzer();
-            List<ScanResult> scanResults = scanner.Scan(enterString);
-            List<findedError> resultErrors = analysis.Errors(scanResults);
-            string result = "";
-            int err;
-            for (err = 0; err < scanResults.Count; err++)
-            {
-                if (scanResults[err].ElementCode == -1)
-                {
-                    err++;
-                }
-            }
-            if (resultErrors.Count > 0 || err > 0)
-            {
-                for (int i = 0; i < scanResults.Count; i++)
-                {
-                    if (scanResults[i].ElementCode == -1)
-                    {
-                        result += "Ошибка: " + scanResults[i].Position + ": Встречен не допустимый символ\n";
-                    }
-                }
-                for (int i = 0; i < resultErrors.Count; i++)
-                {
-                    if (resultErrors[i].code == 1)
-                    {
-                        result += (resultErrors[i].stringNumber + 1) + ":" + (resultErrors[i].position - resultErrors[i].positionString + 1) +
-                            " Предупреждение: " + resultErrors[i].value + "\n\n";
-                    }
-                    else
-                    {
-                        result += (resultErrors[i].stringNumber + 1) + ":" + (resultErrors[i].position - resultErrors[i].positionString + 1) +
-                        " Ошибка: Ожидалось: " + scanner.expected(resultErrors[i].code) + ", но встречено: \"" + resultErrors[i].value + "\"\n" +
-                        "Возможное продолжение: " + scanner.Continue(resultErrors[i].code) + "\n\n";
-                    }
-                }
-            }
-            else
-            {
-                result = "Ошибок не найдено!";
-            }
-            if (result == "")
-            {
-                result = "Ошибок не найдено!";
-            }
-            ResultWindow.Text = result;
-            
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -463,7 +409,6 @@ namespace tf9ik
 
             string test = "Dim S Integer = 13\n"+
                           "Public V As = 9, A As Integer = 2000\n" +
-                          "Private = Integer\n" +
                           "Public Some As Double = 8,30, Thing As Double =\n" +
                           "Private Num As Integer";
 
@@ -472,7 +417,7 @@ namespace tf9ik
 
         private void исходныйКодПрограммыToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            string LinkToRepos = "https://github.com/bodyanlul/TFLK_KR";
+            string LinkToRepos = "https://github.com/bodyankekw/TFLK_KR";
             System.Diagnostics.Process.Start(LinkToRepos);
         }
 
@@ -504,6 +449,33 @@ namespace tf9ik
         {
             Form9 form9 = new Form9();
             form9.Show();
+        }
+
+        private void aNTLRToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (tabControl1.SelectedIndex == -1)
+            {
+                return;
+            }
+            this.ResultWindow.Text = "";
+            RichTextBox box = (RichTextBox)tabControl1.TabPages[tabControl1.SelectedIndex].Controls["textEnter"];
+
+            var text = box.Text.Split('\n');
+            int currentLine = 1;
+            foreach (var item in text)
+            {
+                AntlrInputStream input = new AntlrInputStream(item);
+                BASICLexer lexer = new BASICLexer(input);
+                CommonTokenStream tokens = new CommonTokenStream(lexer);
+                BASICParser parser = new BASICParser(tokens);
+
+                parser.RemoveErrorListeners();
+                CustomErrorListener errors = new CustomErrorListener(this.ResultWindow, currentLine);
+                parser.AddErrorListener(errors);
+
+                parser.program();
+                currentLine++;
+            }
         }
     }
 }
